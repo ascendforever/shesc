@@ -1,0 +1,2 @@
+# shesc
+Simply escape input

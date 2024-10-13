@@ -12,7 +12,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     if args.lines.is_empty() {
         escape_stdin(separator)?;
     } else {
-        escape_lines(separator, &args.lines)?;
+        escape_iter(separator, &args.lines)?;
         if args.both {
             escape_stdin(separator)?;
         }
@@ -21,12 +21,25 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
-fn escape_lines(separator: char, buf: &Vec<String>) -> Result<(), Box<dyn std::error::Error>> {
-    for line in buf {
+
+fn escape_iter<T>(separator: char, it: T) -> Result<(), Box<dyn std::error::Error>>
+where
+    T: IntoIterator,
+    T::Item: AsRef<str>,
+{
+    let mut buf: String;
+    for line in it {
+        let line = line.as_ref();
         print!(
             "{}{}",
-            shlex::try_quote(line)?,
-            separator
+            match shlex::try_quote(line) {
+                Ok(escaped) => escaped,
+                Err(_) => {
+                    buf = line.replace('\0', "");
+                    shlex::try_quote(&buf).unwrap()
+                },
+            },
+            separator,
         );
     }
     Ok(())
@@ -35,12 +48,21 @@ fn escape_lines(separator: char, buf: &Vec<String>) -> Result<(), Box<dyn std::e
 fn escape_stdin(separator: char) -> Result<(), Box<dyn std::error::Error>> {
     let stdin = std::io::stdin();
     let reader = BufReader::new(stdin.lock());
+    let mut buf: String;
     for line in reader.split(separator as u8) {
+        let line = line?;
+        let line = std::str::from_utf8(&line)?;
         print!(
             "{}{}",
-            shlex::try_quote(std::str::from_utf8(&line?)?)?,
-            separator
-        )
+            match shlex::try_quote(line) {
+                Ok(escaped) => escaped,
+                Err(_) => {
+                    buf = line.replace('\0', "");
+                    shlex::try_quote(&buf).unwrap()
+                },
+            },
+            separator,
+        );
     }
     Ok(())
 }

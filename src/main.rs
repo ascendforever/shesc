@@ -80,7 +80,7 @@ fn parse_char(s: &str) -> Result<char, String> {
 
 #[derive(StructOpt)]
 #[structopt(
-    about="Simply escapes input\nControl characters may not be escaped",
+    about="Simply escapes input\nControl characters are removed",
 )]
 struct CLIArguments {
     #[structopt(long,
